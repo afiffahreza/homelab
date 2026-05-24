@@ -1,0 +1,38 @@
+---
+- name: Configure Naganadel Host OS Cloudflared
+  hosts: naganadel
+  become: yes
+  tasks:
+    - name: Download cloudflared deb package
+      get_url:
+        url: https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        dest: /tmp/cloudflared.deb
+
+    - name: Install cloudflared
+      apt:
+        deb: /tmp/cloudflared.deb
+        state: present
+
+    - name: Install cloudflared as a systemd service
+      command: cloudflared service install {{ cloudflare_tunnel_token }}
+      args:
+        creates: /etc/systemd/system/cloudflared.service
+
+    - name: Force HTTP/2 protocol in systemd service to bypass IPv6/QUIC drops
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/system/cloudflared.service
+        regexp: '^ExecStart='
+        line: 'ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run --protocol http2 --token {{ cloudflare_tunnel_token }}'
+      register: cloudflare_service_file
+
+    - name: Kill hanging cloudflared zombie processes (if any)
+      ansible.builtin.command: killall -9 cloudflared
+      ignore_errors: true
+      when: cloudflare_service_file.changed
+
+    - name: Reload systemd and force restart cloudflared
+      ansible.builtin.systemd:
+        name: cloudflared
+        daemon_reload: true
+        state: restarted
+        enabled: true
