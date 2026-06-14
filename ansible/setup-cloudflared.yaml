@@ -1,6 +1,6 @@
 ---
-- name: Configure Naganadel Host OS Cloudflared
-  hosts: naganadel
+- name: Configure Host OS Cloudflared
+  hosts: "{{ target_hosts }}"
   become: yes
   tasks:
     - name: Download cloudflared deb package
