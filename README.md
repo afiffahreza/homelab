@@ -6,7 +6,7 @@ This is a repository for my homelab setup. It contains configuration files, scri
 
 ### Architecture
 
-The current architecture of my homelab setup includes two nodes (yes I named them after pokemon legendaries 😁) running as a kubernetes cluster.
+The current architecture of my homelab setup includes two nodes (yes I named them after pokemon :D) running as a kubernetes cluster.
 
 ![Current Architecture](./docs/homelab2606.png)
 
