@@ -3,22 +3,29 @@
   hosts: "{{ target_hosts }}"
   become: yes
   tasks:
-    - name: Allow OpenSSH (IPv4 and IPv6)
+    - name: Reset UFW to a clean baseline
+      community.general.ufw:
+        state: reset
+    - name: Set UFW default forward policy to ACCEPT (Required for CoreDNS/Pod Egress)
+      ansible.builtin.lineinfile:
+        path: /etc/default/ufw
+        regexp: '^DEFAULT_FORWARD_POLICY='
+        line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
+    - name: Allow OpenSSH (IPv4 and IPv6) globally
       community.general.ufw:
         rule: allow
         name: OpenSSH
-    - name: Allow specific internal cluster ports from 10.0.0.0/8
+    - name: Allow all internal cluster mesh traffic from 10.0.0.0/8
       community.general.ufw:
         rule: allow
         src: '10.0.0.0/8'
-        port: "{{ item.port }}"
-        proto: "{{ item.proto }}"
-      loop:
-        - { port: '6400', proto: 'tcp' }
-        - { port: '6443', proto: 'tcp' }
-        - { port: '4240', proto: 'tcp' }
-        - { port: '10250', proto: 'tcp' }
-        - { port: '8472', proto: 'udp' }
+        comment: 'k8s-internal-mesh'
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+    - name: Reload UFW to apply forward policy changes
+      community.general.ufw:
+        state: reloaded
     - name: Enable UFW
       community.general.ufw:
         state: enabled
